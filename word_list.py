@@ -1,4 +1,5 @@
 import itertools
+import os
 from colorama import Fore, Style, init
 
 # Initialize colorama
@@ -13,9 +14,10 @@ service_profiles = {
 }
 
 special_chars = ["!", "@", "#", "$", "_", ".", "-", "*", "&", "+", "="]
-common_passwords = [...]  # Keep your existing list
+common_passwords = ["password", "admin", "123456", "qwerty", "letmein"]  # Example list
 
 def show_banner():
+    os.system('cls' if os.name == 'nt' else 'clear')
     print(f"""{Fore.CYAN}
 ╦ ╦┌─┐┬  ┌─┐┌─┐┌┬┐   ╦ ╦┌─┐┬─┐┌─┐┌─┐┌─┐┬ ┬
 ║║║├┤ │  │  │ ││││   ╠═╣├─┤├┬┘│  ├┤ └─┐├─┤
@@ -39,18 +41,13 @@ def smart_input(prompt, prev_step=None):
             exit()
 
 def generate_combinations(base_words, service_type):
-    combinations = set()
-    
-    # Basic variations
-    combinations.update(base_words)
+    combinations = set(base_words)
     
     # Service-specific generation
     if service_type in ["ssh", "router"]:
-        # Technical combinations
-        for combo in itertools.product(base_words, ["123", "321", "admin", "root"]):
+        for combo in itertools.product(base_words, ["123", "admin", "root"]):
             combinations.add(''.join(combo))
     elif service_type == "web":
-        # Personal combinations
         for combo in itertools.product(base_words, ["pw", "pass", "secret", "2024"]):
             combinations.add(''.join(combo))
     
@@ -102,7 +99,11 @@ def main_flow():
     combinations = generate_combinations(base_words + common_passwords, service)
     
     # Save output
-    filename = f"{service}_wordlist.txt"
+    default_filename = f"results/{service}_wordlist.txt"
+    print(f"\n💾 Default save location: {default_filename}")
+    custom_filename = smart_input("💾 Enter custom filename or press Enter to use default: ")
+    filename = custom_filename if custom_filename else default_filename
+    
     with open(filename, "w") as f:
         f.write('\n'.join(combinations))
     
