@@ -1,0 +1,12 @@
+name: My First GitHub Action
+
+on: [push, pull_request] # Runs this action when you push code or make a pull request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest # Uses a virtual machine with Ubuntu
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2 # Pulls your repo’s latest code
+      - name: Run a simple script
+        run: echo "Hello from GitHub Actions!" # Runs a basic command
